@@ -424,6 +424,9 @@ label[for=optDark]{display:none!important}
 #tutHand{position:absolute;left:0;top:0;z-index:8;font-size:52px;line-height:1;pointer-events:none;filter:drop-shadow(0 4px 0 rgba(18,24,69,.7));will-change:transform}
 #tutBubble{position:absolute;left:50%;top:18%;transform:translateX(-50%);z-index:8;pointer-events:none;white-space:nowrap;padding:10px 20px;border-radius:18px;background:var(--gGold);border:3px solid var(--ol);box-shadow:0 4px 0 var(--ol);font-family:var(--display);font-size:22px;color:#fff;-webkit-text-stroke:4px var(--ol);paint-order:stroke fill;animation:bub 1.2s ease-in-out infinite}
 @keyframes bub{50%{transform:translateX(-50%) translateY(-5px)}}
+
+/* v45: Spielfeld weiter oben */
+.app{justify-content:flex-start!important;padding-top:max(14px,calc(env(safe-area-inset-top,0px) + 8px),3vh)!important}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="stG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3a8"/><stop offset=".5" stop-color="#ffd23f"/><stop offset="1" stop-color="#f29a10"/></linearGradient></defs></svg>
@@ -1627,7 +1630,7 @@ function drawBanner(bn,fontFam){
   const fs=cell*(bn.small?0.62:0.8);
   ctx.save();
   ctx.translate(W/2,by+cell*3.4-k*cell*0.3);ctx.rotate(-0.07);ctx.scale(sc,sc);ctx.globalAlpha=a;
-  ctx.font='italic 900 '+Math.round(fs)+'px '+fontFam;
+  ctx.font=Math.round(fs)+'px '+fontFam;
   const tw=ctx.measureText(bn.text).width,pw=Math.min(W*0.92,tw+fs*1.1),ph=fs*1.45;
   // Strahlen
   ctx.save();ctx.globalCompositeOperation='lighter';ctx.rotate(age/1400);
@@ -1651,7 +1654,7 @@ function drawBanner(bn,fontFam){
   let fg;
   if(bn.kind==='rainbow'){fg=ctx.createLinearGradient(-tw/2,0,tw/2,0);['#ff4d6d','#ffb84a','#ffe36b','#3fe08e','#4aa8ff','#a457ff'].forEach((c_,i)=>fg.addColorStop(i/5,c_));}
   else{fg=ctx.createLinearGradient(0,-fs/2,0,fs/2);fg.addColorStop(0,'#ffffff');fg.addColorStop(0.5,'rgba('+col+',1)');fg.addColorStop(1,'rgba('+col+',1)');}
-  ctx.shadowColor='rgba('+col+',0.9)';ctx.shadowBlur=fs*0.35;ctx.fillStyle=fg;ctx.fillText(bn.text,0,fs*0.04);
+  ctx.fillStyle='rgba(4,6,26,0.95)';ctx.fillText(bn.text,0,fs*0.04+fs*0.09);ctx.strokeText(bn.text,0,fs*0.04+fs*0.09);ctx.fillStyle=fg;ctx.fillText(bn.text,0,fs*0.04);
   ctx.restore();
 }
 function celebrateRecord(){
@@ -2679,21 +2682,21 @@ function draw(){
     const a=k>0.7?Math.max(0,1-(k-0.7)/0.3):1;
     ctx.save();
     if(pp.tier!=null){
-      ctx.font='italic 800 '+Math.round(pp.size*sc)+'px '+fontFam;
+      ctx.font=Math.round(pp.size*sc)+'px '+fontFam;
       ctx.globalAlpha=a;ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';
       const yy=pp.y-k*cell*0.55;
       ctx.lineWidth=Math.max(3,pp.size*0.16);ctx.strokeStyle='rgba(4,6,26,0.9)';ctx.strokeText(pp.text,pp.x,yy);
-      ctx.shadowColor='rgba('+pp.color+',1)';ctx.shadowBlur=pp.size*(0.3+pp.tier*0.12);
+      ctx.fillStyle='rgba(4,6,26,0.9)';ctx.fillText(pp.text,pp.x,yy+pp.size*0.08);
       const g2=ctx.createLinearGradient(0,yy-pp.size/2,0,yy+pp.size/2);g2.addColorStop(0,'#ffffff');g2.addColorStop(0.6,'rgba('+pp.color+',1)');g2.addColorStop(1,'rgba('+pp.color+',1)');
       ctx.fillStyle=g2;ctx.fillText(pp.text,pp.x,yy);ctx.restore();continue;
     }
-    ctx.font=(pp.small?'800 ':'italic 900 ')+Math.round(pp.size)+'px '+fontFam;
+    ctx.font=Math.round(pp.size)+'px '+fontFam;
     const half=ctx.measureText(pp.text).width*sc/2+pp.size*0.15;
     const px=Math.max(half+4,Math.min(W-half-4,pp.x));
     ctx.globalAlpha=a;ctx.translate(px,pp.y-k*cell*(pp.small?0.5:0.7));ctx.scale(sc,sc);
     ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.lineJoin='round';ctx.lineWidth=Math.max(3,pp.size*0.18);ctx.strokeStyle='rgba(6,8,30,0.9)';ctx.strokeText(pp.text,0,0);
-    if(!pp.small){ctx.shadowColor=pp.color;ctx.shadowBlur=pp.size*0.5;}
+    
     const gr=ctx.createLinearGradient(0,-pp.size/2,0,pp.size/2);gr.addColorStop(0,'#ffffff');gr.addColorStop(0.55,pp.color);gr.addColorStop(1,pp.color);
     ctx.fillStyle=pp.small?pp.color:gr;ctx.fillText(pp.text,0,0);
     ctx.restore();
@@ -2892,11 +2895,12 @@ function frame(now){
 
 /* ---------- Eingabe ---------- */
 function pos(e){const r=cv.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};}
+const IS_TOUCH=(navigator.maxTouchPoints||0)>0&&window.matchMedia&&matchMedia('(pointer:coarse)').matches;
 function moveDrag(x,y){
   const sh=pieces[dragging.i].shape;
   const pw=sh.w*cell,ph=sh.h*cell;
   dragging.x=x-pw/2;
-  dragging.y=dragging.touch?y-ph-cell*0.85:y-ph/2;
+  dragging.y=dragging.touch?y-ph-cell*1.7:y-ph/2;
 }
 cv.addEventListener('pointerdown',e=>{
   audio();
@@ -2908,7 +2912,7 @@ cv.addEventListener('pointerdown',e=>{
   if(gt-trayIn-i*85<120)return;
   const pc=pieces[i],tg=trayGeom(i,pc);
   if(returning&&returning.i===i)returning=null;
-  dragging={i,touch:e.pointerType!=='mouse',x:0,y:0,t0:gt,ts:tg.s,tcx:tg.x+pc.shape.w*tg.s/2,tcy:tg.y+pc.shape.h*tg.s/2};
+  dragging={i,touch:e.pointerType!=='mouse'||IS_TOUCH,x:0,y:0,t0:gt,ts:tg.s,tcx:tg.x+pc.shape.w*tg.s/2,tcy:tg.y+pc.shape.h*tg.s/2};
   moveDrag(x,y);
   cv.classList.add('drag');
   try{cv.setPointerCapture(e.pointerId);}catch(err){}
